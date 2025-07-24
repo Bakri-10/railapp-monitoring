@@ -1,0 +1,139 @@
+# Docker Compose for Rails Hello World with Monitoring
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: rails_starter_development
+      POSTGRES_USER: rails_user
+      POSTGRES_PASSWORD: rails_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./monitoring/postgres_exporter.yml:/etc/postgres_exporter.yml
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rails_user -d rails_starter_development"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Rails Application
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://rails_user:rails_password@postgres:5432/rails_starter_development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+      RAILS_LOG_TO_STDOUT: "true"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+      - tmp-data:/app/tmp
+      - log-data:/app/log
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        until nc -z postgres 5432; do
+          echo 'Waiting for PostgreSQL to be ready...' &&
+          sleep 2;
+        done &&
+        mkdir -p /app/tmp/pids /app/log &&
+        bundle _2.4.22_ install &&
+        bundle _2.4.22_ exec rake db:create db:migrate &&
+        echo 'Starting Rails server...' &&
+        bundle _2.4.22_ exec rails server -b 0.0.0.0 -p 3000
+      "
+
+  # PostgreSQL Exporter for Prometheus
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://rails_user:rails_password@postgres:5432/rails_starter_development?sslmode=disable
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+
+  # Redis Exporter for Prometheus
+  redis_exporter:
+    image: oliver006/redis_exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+    restart: unless-stopped
+    depends_on:
+      - web
+      - postgres_exporter
+      - redis_exporter
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Alertmanager
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  grafana_data:
+  bundle_cache:
+  tmp-data:
+  log-data: 

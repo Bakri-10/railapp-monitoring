@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+	<HEAD>
+		<TITLE>Ruby on Rails Hello World - Monitoring Demo</TITLE>
+		<link href='/stylesheets/style.css' rel='stylesheet'>
+		<style>
+			.status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+			.status.up { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+			.status.down { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+			.metrics { background-color: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 5px; }
+		</style>
+	</HEAD>
+ 
+	<BODY>
+		<table width="100%">
+			<tr>
+				<td style='width:30%;'>
+					<img class = 'newappIcon' src='assets/newapp-icon.png'>
+				</td>
+				<td>
+					<h1>Hello World - Rails + PostgreSQL + Redis + Monitoring</h1>
+					<p class='description'>
+						This is a demonstration Rails application with integrated PostgreSQL database, Redis caching, and comprehensive monitoring setup.
+					</p>
+					
+					<div class="metrics">
+						<h3>System Status</h3>
+						<div class="status <%= @database_connected ? 'up' : 'down' %>">
+							<strong>PostgreSQL:</strong> <%= @database_connected ? 'Connected' : 'Disconnected' %>
+						</div>
+						<div class="status <%= @redis_connected ? 'up' : 'down' %>">
+							<strong>Redis:</strong> <%= @redis_connected ? 'Connected' : 'Disconnected' %>
+						</div>
+					</div>
+
+					<div class="metrics">
+						<h3>Application Information</h3>
+						<p><strong>Your IP Address:</strong> <%= @yourip %></p>
+						<p><strong>Ruby Version:</strong> <%= @ruby_version %></p>
+						<p><strong>Rails Version:</strong> <%= @rails_version %></p>
+						<p><strong>Total Visitors:</strong> <%= @visitor_count %></p>
+					</div>
+
+					<% if @recent_visitors.any? %>
+					<div class="metrics">
+						<h3>Recent Visitors</h3>
+						<% @recent_visitors.each do |visitor| %>
+						<p><strong><%= visitor.ip_address %></strong> - <%= visitor.created_at.strftime("%Y-%m-%d %H:%M:%S") %></p>
+						<% end %>
+					</div>
+					<% end %>
+
+					<div class="metrics">
+						<h3>Monitoring Endpoints</h3>
+						<ul>
+							<li><a href="/health">Health Check</a> - Application health status</li>
+							<li><a href="/metrics">Prometheus Metrics</a> - Application metrics for monitoring</li>
+						</ul>
+					</div>
+
+					<div class="metrics">
+						<h3>External Services</h3>
+						<ul>
+							<li><a href="http://localhost:3001" target="_blank">Grafana Dashboard</a> (admin/admin123)</li>
+							<li><a href="http://localhost:9090" target="_blank">Prometheus</a></li>
+						</ul>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</BODY>
+</HTML>

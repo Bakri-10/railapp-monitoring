@@ -1,0 +1,29 @@
+development:
+  adapter: postgresql
+  encoding: unicode
+  database: rails_starter_development
+  pool: 5
+  username: rails_user
+  password: rails_password
+  host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+  port: <%= ENV['DATABASE_PORT'] || '5432' %>
+
+test:
+  adapter: postgresql
+  encoding: unicode
+  database: rails_starter_test
+  pool: 5
+  username: rails_user
+  password: rails_password
+  host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+  port: <%= ENV['DATABASE_PORT'] || '5432' %>
+
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: rails_starter_production
+  pool: 5
+  username: <%= ENV['DATABASE_USER'] || 'rails_user' %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
+  host: <%= ENV['DATABASE_HOST'] %>
+  port: <%= ENV['DATABASE_PORT'] || '5432' %>
